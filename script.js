@@ -274,33 +274,34 @@ function updateHistoricalCharts() {
             const bDate = new Date(bestD.getTime() + userTz);
             const bestDayName = bDate.toLocaleDateString('es-ES', { weekday: 'long' });
             
-            analTitle1.textContent = "Mejor Día de la Semana";
+            analTitle1.textContent = "Día Más Activo";
             analIcon1.className = "fa-solid fa-trophy";
             analValue1.textContent = maxWPeak;
             analSecondary1.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-gray-700 text-gray-300 capitalize";
             analSecondary1.textContent = bestDayName;
             
-            const diffFromBest = currentDayPeak - maxWPeak;
-            if (diffFromBest === 0) {
-                analDesc1.innerHTML = `El día consultado <b>es el mejor</b> de la semana.`;
+            if (currentDayPeak === maxWPeak) {
+                analDesc1.innerHTML = `El día que seleccionaste <b>es el récord</b> de esta semana.`;
             } else {
-                analDesc1.innerHTML = `El día consultado (${currentDayPeak}) está <b>${diffFromBest} jug.</b> por debajo del pico.`;
+                analDesc1.innerHTML = `El día seleccionado tuvo <b>${currentDayPeak} jugadores</b> en su punto máximo.`;
             }
 
             // Tarjeta Analítica 2: Rendimiento Semanal (Promedios sin decimales)
             let avgCurrentR = currentWeekDates.length > 0 ? Math.round(sumCurrent / currentWeekDates.length) : 0;
             let avgPrevR = prevWeekDates.length > 0 ? Math.round(sumPrev / prevWeekDates.length) : 0;
             let diffAvg = avgCurrentR - avgPrevR;
-            let valClass = diffAvg >= 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400";
-            let valSign = diffAvg >= 0 ? "+" : "";
+            
+            let valClass = diffAvg > 0 ? "bg-emerald-500/20 text-emerald-400" : (diffAvg < 0 ? "bg-red-500/20 text-red-400" : "bg-gray-700 text-gray-300");
+            let valSign = diffAvg > 0 ? "+" : "";
+            let textDiff = diffAvg === 0 ? "Igual a la semana pasada" : `${valSign}${diffAvg} que la semana pasada`;
 
-            analTitle2.textContent = "Crecimiento Semanal";
-            analIcon2.className = "fa-solid fa-arrow-trend-up";
-            analValue2.textContent = avgCurrentR + " Jug.";
+            analTitle2.textContent = "Promedio Semanal";
+            analIcon2.className = "fa-solid fa-users";
+            analValue2.textContent = avgCurrentR;
             analSecondary1.textContent = bestDayName; // Resetting just in case
             analSecondary2.className = `text-sm font-medium mb-1 px-2 py-0.5 rounded ${valClass}`;
-            analSecondary2.textContent = `${valSign}${diffAvg} vs Anterior`;
-            analDesc2.innerHTML = `El promedio diario de la semana es de <b>${avgCurrentR} jugadores</b> activos.`;
+            analSecondary2.textContent = textDiff;
+            analDesc2.innerHTML = `Cantidad media de jugadores activos por día.`;
         }
 
         // Gráfico Secundario (Comparación de PROMENDIOS - Sin Decimales)
@@ -399,15 +400,16 @@ function updateHistoricalCharts() {
                 pDiff = Math.round(((avgCurrMonth - avgPrevMonth) / avgPrevMonth) * 100);
             }
             
-            let mClass = pDiff >= 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400";
-            let mSign = pDiff >= 0 ? "+" : "";
+            let mClass = pDiff > 0 ? "bg-emerald-500/20 text-emerald-400" : (pDiff < 0 ? "bg-red-500/20 text-red-400" : "bg-gray-700 text-gray-300");
+            let mSign = pDiff > 0 ? "+" : "";
+            let textMDiff = pDiff === 0 ? "Sin cambios vs mes anterior" : `${mSign}${pDiff}% vs mes pasado`;
 
-            analTitle1.textContent = "Desempeño Mensual";
-            analIcon1.className = "fa-solid fa-ranking-star";
-            analValue1.textContent = avgCurrMonth + " Jug.";
+            analTitle1.textContent = "Promedio del Mes";
+            analIcon1.className = "fa-solid fa-users";
+            analValue1.textContent = avgCurrMonth;
             analSecondary1.className = `text-sm font-medium mb-1 px-2 py-0.5 rounded ${mClass}`;
-            analSecondary1.textContent = `${mSign}${pDiff}% vs Anterior`;
-            analDesc1.innerHTML = `Promedio de los jugadores activos diariamente durante este mes.`;
+            analSecondary1.textContent = textMDiff;
+            analDesc1.innerHTML = `Cantidad media de jugadores diarios este mes.`;
 
             // 2. Mejor Semana del Mes
             // Lo dividimos en "chunks" de 7 días (Días 1-7, 8-14, etc.)
@@ -432,12 +434,13 @@ function updateHistoricalCharts() {
                 }
             }
             
-            analTitle2.textContent = "Mejor Semana";
-            analIcon2.className = "fa-solid fa-crown";
+            let wName = bestWeekIdx >= 0 ? `Semana ${bestWeekIdx + 1}` : "N/A";
+            analTitle2.textContent = "Semana Más Fuerte";
+            analIcon2.className = "fa-solid fa-fire";
             analValue2.textContent = bestWeekAvg > 0 ? bestWeekAvg : "--";
-            analSecondary2.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-blue-500/20 text-blue-400";
-            analSecondary2.textContent = bestWeekIdx >= 0 ? `Semana ${bestWeekIdx + 1}` : "N/A";
-            analDesc2.innerHTML = `El bloque de 7 días con mayor tráfico promedio en este mes.`;
+            analSecondary2.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-orange-500/20 text-orange-400";
+            analSecondary2.textContent = wName;
+            analDesc2.innerHTML = `El promedio más alto logrado en 7 días seguidos.`;
         }
 
         // 1. Llenar Tabla con los días del mes actual (Orden Inverso)
