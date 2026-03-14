@@ -98,9 +98,14 @@ function updateHistoricalCharts() {
     // ------------------------------------------
     // LÓGICA SEGÚN PESTAÑA (TIMEFRAME)
     // ------------------------------------------
+    
+    const analContainer = document.getElementById('analyticalCardsContainer');
+    const analTitle1 = document.getElementById('analTitle1'), analValue1 = document.getElementById('analValue1'), analSecondary1 = document.getElementById('analSecondary1'), analDesc1 = document.getElementById('analDesc1'), analIcon1 = document.getElementById('analIcon1');
+    const analTitle2 = document.getElementById('analTitle2'), analValue2 = document.getElementById('analValue2'), analSecondary2 = document.getElementById('analSecondary2'), analDesc2 = document.getElementById('analDesc2'), analIcon2 = document.getElementById('analIcon2');
 
     if (currentTimeframe === 'day') {
         document.getElementById('secondaryChartContainer').classList.add('hidden'); // Ocultar gráfico secundario
+        if (analContainer) analContainer.classList.add('hidden'); // Ocultar tarjetas extras
         document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-clock text-purple-400"></i> Historial Hoy (24 Horas)';
         
         // 1. Llenar Tabla (Orden Inverso)
@@ -245,9 +250,62 @@ function updateHistoricalCharts() {
             }
         }
         
-        // Gráfico Secundario (Comparación de PROMENDIOS)
-        let avgCurrent = currentWeekDates.length > 0 ? (sumCurrent / currentWeekDates.length).toFixed(1) : 0;
-        let avgPrev = prevWeekDates.length > 0 ? (sumPrev / prevWeekDates.length).toFixed(1) : 0;
+        // Tarjeta Analítica 1: Mejor Día vs Actual
+        if (analContainer) {
+            analContainer.classList.remove('hidden');
+            
+            // Encontrar el mejor día de la semana actual
+            let maxWPeak = -1, maxWDateStr = "";
+            let currentDayPeak = 0;
+            currentWeekDates.forEach((dateStr, idx) => {
+                let peakOfDay = 0;
+                for (const h in historyData[dateStr]) {
+                    if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
+                }
+                if (peakOfDay > maxWPeak) {
+                    maxWPeak = peakOfDay;
+                    maxWDateStr = dateStr;
+                }
+                if (idx === currentWeekDates.length - 1) currentDayPeak = peakOfDay; // El último día (día actual de la búsqueda)
+            });
+            
+            const bestD = new Date(maxWDateStr);
+            const userTz = bestD.getTimezoneOffset() * 60000;
+            const bDate = new Date(bestD.getTime() + userTz);
+            const bestDayName = bDate.toLocaleDateString('es-ES', { weekday: 'long' });
+            
+            analTitle1.textContent = "Mejor Día de la Semana";
+            analIcon1.className = "fa-solid fa-trophy";
+            analValue1.textContent = maxWPeak;
+            analSecondary1.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-gray-700 text-gray-300 capitalize";
+            analSecondary1.textContent = bestDayName;
+            
+            const diffFromBest = currentDayPeak - maxWPeak;
+            if (diffFromBest === 0) {
+                analDesc1.innerHTML = `El día consultado <b>es el mejor</b> de la semana.`;
+            } else {
+                analDesc1.innerHTML = `El día consultado (${currentDayPeak}) está <b>${diffFromBest} jug.</b> por debajo del pico.`;
+            }
+
+            // Tarjeta Analítica 2: Rendimiento Semanal (Promedios sin decimales)
+            let avgCurrentR = currentWeekDates.length > 0 ? Math.round(sumCurrent / currentWeekDates.length) : 0;
+            let avgPrevR = prevWeekDates.length > 0 ? Math.round(sumPrev / prevWeekDates.length) : 0;
+            let diffAvg = avgCurrentR - avgPrevR;
+            let valClass = diffAvg >= 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400";
+            let valSign = diffAvg >= 0 ? "+" : "";
+
+            analTitle2.textContent = "Crecimiento Semanal";
+            analIcon2.className = "fa-solid fa-arrow-trend-up";
+            analValue2.textContent = avgCurrentR + " Jug.";
+            analSecondary1.textContent = bestDayName; // Resetting just in case
+            analSecondary2.className = `text-sm font-medium mb-1 px-2 py-0.5 rounded ${valClass}`;
+            analSecondary2.textContent = `${valSign}${diffAvg} vs Anterior`;
+            analDesc2.innerHTML = `El promedio diario de la semana es de <b>${avgCurrentR} jugadores</b> activos.`;
+        }
+
+        // Gráfico Secundario (Comparación de PROMENDIOS - Sin Decimales)
+        let avgCurrent = currentWeekDates.length > 0 ? Math.round(sumCurrent / currentWeekDates.length) : 0;
+        let avgPrev = prevWeekDates.length > 0 ? Math.round(sumPrev / prevWeekDates.length) : 0;
         
         if (secondaryChart) {
             secondaryChart.data.labels = ['S. Anterior', 'S. Actual'];
@@ -324,6 +382,64 @@ function updateHistoricalCharts() {
         document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-code-compare text-blue-400"></i> Crecimiento (Mes vs Ant.)';
         document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Rendimiento de Mes: ' + targetMonthStr;
 
+        // Tarjetas Analíticas de Mes (Semana a Semana y Promedios sin decimales)
+        if (analContainer) {
+            analContainer.classList.remove('hidden');
+            
+            // 1. Promedio General del Mes sin decimales
+            let sumCurrMonth = 0, sumPrevMonth = 0;
+            currentMonthDays.forEach(x => sumCurrMonth += x.peak);
+            prevMonthDays.forEach(x => sumPrevMonth += x.peak);
+            
+            let avgCurrMonth = currentMonthDays.length > 0 ? Math.round(sumCurrMonth / currentMonthDays.length) : 0;
+            let avgPrevMonth = prevMonthDays.length > 0 ? Math.round(sumPrevMonth / prevMonthDays.length) : 0;
+            
+            let pDiff = 0;
+            if (avgPrevMonth > 0) {
+                pDiff = Math.round(((avgCurrMonth - avgPrevMonth) / avgPrevMonth) * 100);
+            }
+            
+            let mClass = pDiff >= 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400";
+            let mSign = pDiff >= 0 ? "+" : "";
+
+            analTitle1.textContent = "Desempeño Mensual";
+            analIcon1.className = "fa-solid fa-ranking-star";
+            analValue1.textContent = avgCurrMonth + " Jug.";
+            analSecondary1.className = `text-sm font-medium mb-1 px-2 py-0.5 rounded ${mClass}`;
+            analSecondary1.textContent = `${mSign}${pDiff}% vs Anterior`;
+            analDesc1.innerHTML = `Promedio de los jugadores activos diariamente durante este mes.`;
+
+            // 2. Mejor Semana del Mes
+            // Lo dividimos en "chunks" de 7 días (Días 1-7, 8-14, etc.)
+            let weekSums = [0,0,0,0,0];
+            let weekCounts = [0,0,0,0,0];
+            currentMonthDays.forEach(dInfo => {
+                let wIdx = Math.floor((dInfo.day - 1) / 7);
+                if (wIdx > 4) wIdx = 4; // Agrupar los últimos días
+                weekSums[wIdx] += dInfo.peak;
+                weekCounts[wIdx]++;
+            });
+            
+            let bestWeekIdx = -1;
+            let bestWeekAvg = -1;
+            for(let i=0; i<5; i++){
+                if (weekCounts[i] > 0) {
+                    let wAvg = Math.round(weekSums[i] / weekCounts[i]);
+                    if (wAvg > bestWeekAvg) {
+                        bestWeekAvg = wAvg;
+                        bestWeekIdx = i;
+                    }
+                }
+            }
+            
+            analTitle2.textContent = "Mejor Semana";
+            analIcon2.className = "fa-solid fa-crown";
+            analValue2.textContent = bestWeekAvg > 0 ? bestWeekAvg : "--";
+            analSecondary2.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-blue-500/20 text-blue-400";
+            analSecondary2.textContent = bestWeekIdx >= 0 ? `Semana ${bestWeekIdx + 1}` : "N/A";
+            analDesc2.innerHTML = `El bloque de 7 días con mayor tráfico promedio en este mes.`;
+        }
+
         // 1. Llenar Tabla con los días del mes actual (Orden Inverso)
         for (let i = currentMonthDays.length - 1; i >= 0; i--) {
             const item = currentMonthDays[i];
@@ -377,9 +493,9 @@ function updateHistoricalCharts() {
             }
         }
         
-        // Gráfico Secundario (Comparación de Promedios del Mes)
-        let avgCurrentM = countCurrent > 0 ? (sumCurrent / countCurrent).toFixed(1) : 0;
-        let avgPrevM = countPrev > 0 ? (sumPrev / countPrev).toFixed(1) : 0;
+        // Gráfico Secundario (Comparación de Promedios del Mes - Sin Decimales)
+        let avgCurrentM = countCurrent > 0 ? Math.round(sumCurrent / countCurrent) : 0;
+        let avgPrevM = countPrev > 0 ? Math.round(sumPrev / countPrev) : 0;
         
         if (secondaryChart) {
             secondaryChart.data.labels = ['Mes Anterior', 'Mes Actual'];

@@ -156,7 +156,7 @@
         </div>
 
         <!-- Pickers Section (Hidden initially) -->
-        <div id="pickersContainer" class="flex justify-center items-center gap-4 mb-8 hidden">
+        <div id="pickersContainer" class="flex justify-center items-center gap-4 mb-4 hidden">
             <div id="weekPickerContainer" class="hidden flex items-center gap-3 bg-gray-800/80 rounded-xl px-4 py-2 border border-white/10">
                 <label for="weekPicker" class="text-sm text-gray-400">Ver semana del:</label>
                 <input type="date" id="weekPicker" onchange="updateHistoricalCharts()" class="bg-transparent text-white border-none outline-none focus:ring-0 text-sm cursor-pointer" title="Selecciona un día y veremos la semana que termina ese día">
@@ -164,6 +164,35 @@
             <div id="monthPickerContainer" class="hidden flex items-center gap-3 bg-gray-800/80 rounded-xl px-4 py-2 border border-white/10">
                 <label for="monthPicker" class="text-sm text-gray-400">Ver mes:</label>
                 <input type="month" id="monthPicker" onchange="updateHistoricalCharts()" class="bg-transparent text-white border-none outline-none focus:ring-0 text-sm cursor-pointer">
+            </div>
+        </div>
+
+        <!-- Analytical Cards Section (Dynamic for Week & Month) -->
+        <div id="analyticalCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 hidden">
+            <!-- Dynamic Card 1 -->
+            <div class="glass-card rounded-2xl p-5 relative overflow-hidden group border border-white/5">
+                <div class="absolute -right-4 -top-4 text-white/5 text-7xl pointer-events-none">
+                    <i class="fa-solid fa-trophy" id="analIcon1"></i>
+                </div>
+                <h3 class="text-xs text-gray-400 uppercase font-semibold tracking-wider mb-2" id="analTitle1">Análisis 1</h3>
+                <div class="flex items-end gap-3">
+                    <span class="text-3xl font-bold text-white" id="analValue1">--</span>
+                    <span class="text-sm font-medium mb-1 px-2 py-0.5 rounded" id="analSecondary1">--</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2" id="analDesc1">--</p>
+            </div>
+
+            <!-- Dynamic Card 2 -->
+            <div class="glass-card rounded-2xl p-5 relative overflow-hidden group border border-white/5">
+                <div class="absolute -right-4 -top-4 text-white/5 text-7xl pointer-events-none">
+                    <i class="fa-solid fa-chart-pie" id="analIcon2"></i>
+                </div>
+                <h3 class="text-xs text-gray-400 uppercase font-semibold tracking-wider mb-2" id="analTitle2">Análisis 2</h3>
+                <div class="flex items-end gap-3">
+                    <span class="text-3xl font-bold text-white" id="analValue2">--</span>
+                    <span class="text-sm font-medium mb-1 px-2 py-0.5 rounded" id="analSecondary2">--</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2" id="analDesc2">--</p>
             </div>
         </div>
 
@@ -229,8 +258,8 @@
 
     </div>
 
-    <!-- Custom Script V4 Cache Buster -->
-    <script src="script.js?v=4"></script>
+    <!-- Custom Script V5 Cache Buster -->
+    <script src="script.js?v=5"></script>
 </body>
 
 </html>
