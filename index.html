@@ -129,8 +129,8 @@
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        <!-- Charts Section (Top Row) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- Gráfico Tiempo Real -->
             <div class="glass-card rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-6">
@@ -144,22 +144,6 @@
                 </div>
             </div>
 
-            <!-- Gráfico Actividad por Horas -->
-            <div class="glass-card rounded-2xl p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-purple-400"></i>
-                        Historial Hoy (Horas)
-                    </h3>
-                    <button onclick="clearHistory('hourly')" class="text-xs text-gray-500 hover:text-red-400 transition-colors" title="Borrar datos de hoy">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-                <div class="relative h-64 w-full">
-                    <canvas id="hoursChart"></canvas>
-                </div>
-            </div>
-
             <!-- Gráfico Actividad Semanal/Diaria -->
             <div class="glass-card rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-6">
@@ -167,12 +151,31 @@
                         <i class="fa-solid fa-calendar-week text-emerald-400"></i>
                         Historial (Días)
                     </h3>
-                    <button onclick="clearHistory('daily')" class="text-xs text-gray-500 hover:text-red-400 transition-colors" title="Borrar historial de días">
+                    <button onclick="clearHistory('daily')" class="text-xs text-gray-500 hover:text-red-400 transition-colors" title="Limpiar datos">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </div>
                 <div class="relative h-64 w-full">
                     <canvas id="daysChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section (Bottom Row) -->
+        <div class="grid grid-cols-1 gap-6 mb-10">
+            <!-- Gráfico Actividad por Horas -->
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-purple-400"></i>
+                        Historial Hoy (24 Horas)
+                    </h3>
+                    <button onclick="clearHistory('hourly')" class="text-xs text-gray-500 hover:text-red-400 transition-colors" title="Limpiar datos">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+                <div class="relative h-72 w-full">
+                    <canvas id="hoursChart"></canvas>
                 </div>
             </div>
         </div>
