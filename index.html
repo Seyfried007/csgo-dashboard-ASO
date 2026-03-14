@@ -75,7 +75,7 @@
         </header>
 
         <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
             <!-- Players Card -->
             <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
                 <div
@@ -125,6 +125,19 @@
                             <i class="fa-regular fa-image mr-2"></i> Sin vista previa
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Best Hour Card -->
+            <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+                <div
+                    class="absolute -right-4 -top-6 text-white/5 text-8xl group-hover:text-white/10 transition-colors pointer-events-none">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold tracking-wider mb-2">Hora Pico Frecuente</h3>
+                <div class="flex flex-col gap-1">
+                    <span class="text-4xl font-bold text-purple-400" id="valBestHour">--:--</span>
+                    <span class="text-sm text-gray-400 mt-1">Hora con más jugadores históricos</span>
                 </div>
             </div>
         </div>

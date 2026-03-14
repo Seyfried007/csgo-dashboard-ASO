@@ -20,6 +20,7 @@ const elPlayersBar = document.getElementById('playersBar');
 const elRefreshIcon = document.getElementById('refreshIcon');
 const elMapImage = document.getElementById('mapImage');
 const elMapPlaceholder = document.getElementById('mapPlaceholder');
+const elBestHour = document.getElementById('valBestHour');
 
 // NO SE USA LOCALSTORAGE, SE USA EL ARCHIVO GLOBAL history.json PARA HORAS Y DÍAS.
 let historyData = {};
@@ -41,6 +42,27 @@ async function fetchHistory() {
 function updateHistoricalCharts() {
     const dates = Object.keys(historyData).sort();
     if (dates.length === 0) return;
+
+    // --- CÁLCULO DE LA MEJOR HORA HISTÓRICA ---
+    let hourSums = {};
+    dates.forEach(dateStr => {
+        const hoursObj = historyData[dateStr];
+        for (const h in hoursObj) {
+            if (!hourSums[h]) hourSums[h] = 0;
+            hourSums[h] += hoursObj[h];
+        }
+    });
+    
+    let bestHourStr = "--:--";
+    let maxHourSum = -1;
+    for (const h in hourSums) {
+        if (hourSums[h] > maxHourSum) {
+            maxHourSum = hourSums[h];
+            bestHourStr = h;
+        }
+    }
+    if (elBestHour) elBestHour.textContent = bestHourStr;
+    // ------------------------------------------
 
     // 1. Llenar Tabla (Orden Inverso, del más reciente al más antiguo)
     const tableBody = document.getElementById('historyTableBody');
