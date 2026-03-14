@@ -143,7 +143,7 @@
         </div>
 
         <!-- Tabs Section -->
-        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-4">
             <button id="tabDay" onclick="setTimeframe('day')" class="time-tab active px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30">
                 <i class="fa-solid fa-clock mr-2"></i>Día Actual
             </button>
@@ -153,6 +153,18 @@
             <button id="tabMonth" onclick="setTimeframe('month')" class="time-tab px-6 py-2 rounded-full font-semibold transition-all duration-300 bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 border border-transparent">
                 <i class="fa-solid fa-calendar-days mr-2"></i>Mes
             </button>
+        </div>
+
+        <!-- Pickers Section (Hidden initially) -->
+        <div id="pickersContainer" class="flex justify-center items-center gap-4 mb-8 hidden">
+            <div id="weekPickerContainer" class="hidden flex items-center gap-3 bg-gray-800/80 rounded-xl px-4 py-2 border border-white/10">
+                <label for="weekPicker" class="text-sm text-gray-400">Ver semana del:</label>
+                <input type="date" id="weekPicker" onchange="updateHistoricalCharts()" class="bg-transparent text-white border-none outline-none focus:ring-0 text-sm cursor-pointer" title="Selecciona un día y veremos la semana que termina ese día">
+            </div>
+            <div id="monthPickerContainer" class="hidden flex items-center gap-3 bg-gray-800/80 rounded-xl px-4 py-2 border border-white/10">
+                <label for="monthPicker" class="text-sm text-gray-400">Ver mes:</label>
+                <input type="month" id="monthPicker" onchange="updateHistoricalCharts()" class="bg-transparent text-white border-none outline-none focus:ring-0 text-sm cursor-pointer">
+            </div>
         </div>
 
         <!-- Charts Section (Top Row - Dynamic Table & Chart) -->

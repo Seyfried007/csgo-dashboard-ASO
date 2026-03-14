@@ -26,6 +26,19 @@ const elBestHour = document.getElementById('valBestHour');
 let historyData = {};
 let currentTimeframe = 'day'; // day, week, month
 
+// Configurar inputs por defecto con fecha actual
+document.addEventListener('DOMContentLoaded', () => {
+    const today = new Date();
+    const tzOffset = today.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(today - tzOffset)).toISOString();
+    
+    const weekInput = document.getElementById('weekPicker');
+    if (weekInput) weekInput.value = localISOTime.split('T')[0];
+    
+    const monthInput = document.getElementById('monthPicker');
+    if (monthInput) monthInput.value = localISOTime.substring(0, 7); // YYYY-MM
+});
+
 async function fetchHistory() {
     try {
         // Asegurarse de que los gráficos existan antes de intentar actualizarlos
@@ -94,7 +107,11 @@ function updateHistoricalCharts() {
         for (let i = dates.length - 1; i >= 0; i--) {
             const dateStr = dates[i];
             const d = new Date(dateStr);
-            const formattedDate = d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+            // Fix timezone shift for localized display
+            const userTimezoneOffset = d.getTimezoneOffset() * 60000;
+            const localDate = new Date(d.getTime() + userTimezoneOffset);
+            
+            const formattedDate = localDate.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
             
             const hoursInDay = historyData[dateStr];
             let peakOfDay = 0;
@@ -128,60 +145,93 @@ function updateHistoricalCharts() {
         
         if (mainChart) {
             mainChart.data.labels = hLabels.length > 0 ? hLabels : ['Sin datos'];
-            mainChart.data.datasets[0].label = 'Jugadores a esta hora';
-            mainChart.data.datasets[0].data = hLabels.length > 0 ? hData : [0];
-            mainChart.data.datasets[0].backgroundColor = gradientPurple;
-            mainChart.data.datasets[0].borderColor = '#c084fc';
-            mainChart.data.datasets[0].hoverBackgroundColor = '#d8b4fe';
+            mainChart.data.datasets = [{
+                label: 'Jugadores a esta hora',
+                data: hLabels.length > 0 ? hData : [0],
+                backgroundColor: gradientPurple,
+                borderColor: '#c084fc',
+                borderWidth: 2, borderRadius: 6,
+                hoverBackgroundColor: '#d8b4fe'
+            }];
             mainChart.update();
         }
 
-    } else if (currentTimeframe === 'week' || currentTimeframe === 'month') {
-        document.getElementById('secondaryChartContainer').classList.remove('hidden'); // Mostrar gráfico secundario
+    } else if (currentTimeframe === 'week') {
+        document.getElementById('secondaryChartContainer').classList.remove('hidden');
         
-        let daysToSlice = currentTimeframe === 'week' ? 7 : 30;
-        let recentDates = dates.slice(-daysToSlice);
+        let targetDateStr = document.getElementById('weekPicker')?.value;
+        if (!targetDateStr) targetDateStr = dates[dates.length - 1]; // Fallback to latest
         
-        // Configurar Títulos
-        if(currentTimeframe === 'week') {
-            document.getElementById('tableTitle').innerHTML = '<i class="fa-solid fa-calendar-week text-emerald-400"></i> Resumen Semanal';
-            document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-chart-bar text-emerald-400"></i> Tendencia de la Semana';
-            document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Picos por Día (Últimos 7 días)';
-        } else {
-            document.getElementById('tableTitle').innerHTML = '<i class="fa-solid fa-calendar-days text-blue-400"></i> Resumen Mensual';
-            document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-chart-line text-blue-400"></i> Tendencia del Mes';
-            document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Picos por Día (Últimos 30 días)';
+        // Find the index of the target date or closest past date
+        let targetIndex = dates.length - 1;
+        for (let i = dates.length - 1; i >= 0; i--) {
+            if (dates[i] <= targetDateStr) {
+                targetIndex = i;
+                break;
+            }
+        }
+        
+        // Extract 7 days ending on target date
+        let startIndex = Math.max(0, targetIndex - 6);
+        let currentWeekDates = dates.slice(startIndex, targetIndex + 1);
+        
+        // Extract previous 7 days
+        let prevEndIndex = startIndex - 1;
+        let prevStartIndex = Math.max(0, prevEndIndex - 6);
+        let prevWeekDates = prevEndIndex >= 0 ? dates.slice(prevStartIndex, prevEndIndex + 1) : [];
+
+        document.getElementById('tableTitle').innerHTML = '<i class="fa-solid fa-calendar-week text-emerald-400"></i> Resumen Semana Sel.';
+        document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-code-compare text-emerald-400"></i> Crecimiento (Semana vs Ant.)';
+        document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Picos Diarios de la Semana';
+
+        const cLabels = [];
+        const cData = [];
+        const pData = [];
+        let sumCurrent = 0;
+        let sumPrev = 0;
+        
+        // Generar labels de 1 a 7 (Lunes a Domingo idealmente, o simplemente Día 1 a 7)
+        for(let i=0; i<7; i++) {
+            cLabels.push(`Día ${i+1}`);
+            
+            // Current week data point
+            if (i < currentWeekDates.length) {
+                const dateStr = currentWeekDates[i];
+                let peakOfDay = 0;
+                for (const h in historyData[dateStr]) {
+                    if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
+                }
+                cData.push(peakOfDay);
+                sumCurrent += peakOfDay;
+            } else {
+                cData.push(0);
+            }
+            
+            // Previous week data point
+            if (i < prevWeekDates.length) {
+                const dateStr = prevWeekDates[i];
+                let peakOfDay = 0;
+                for (const h in historyData[dateStr]) {
+                    if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
+                }
+                pData.push(peakOfDay);
+                sumPrev += peakOfDay;
+            } else {
+                pData.push(0);
+            }
         }
 
-        // Preparar Datos para Tablas y Gráficos
-        const dLabels = [];
-        const dData = [];
-        let sumPeaks = 0;
-        
-        // Iterar de forma normal para gráficos
-        recentDates.forEach(dateStr => {
+        // Llenar Tabla solo con la semana actual (Orden Cronológico Inverso)
+        for (let i = currentWeekDates.length - 1; i >= 0; i--) {
+            const dateStr = currentWeekDates[i];
             const d = new Date(dateStr);
-            dLabels.push(d.getDate() + '/' + (d.getMonth() + 1));
+            const userTimezoneOffset = d.getTimezoneOffset() * 60000;
+            const localDate = new Date(d.getTime() + userTimezoneOffset);
+            const formattedDate = localDate.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
             
-            const hoursInDay = historyData[dateStr];
             let peakOfDay = 0;
-            for (const h in hoursInDay) {
-                if (hoursInDay[h] > peakOfDay) peakOfDay = hoursInDay[h];
-            }
-            dData.push(peakOfDay);
-            sumPeaks += peakOfDay;
-        });
-
-        // 1. Llenar Tabla (Orden Inverso para que recientes salgan arriba)
-        for (let i = recentDates.length - 1; i >= 0; i--) {
-            const dateStr = recentDates[i];
-            const d = new Date(dateStr);
-            const formattedDate = d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
-            
-            const hoursInDay = historyData[dateStr];
-            let peakOfDay = 0;
-            for (const h in hoursInDay) {
-                if (hoursInDay[h] > peakOfDay) peakOfDay = hoursInDay[h];
+            for (const h in historyData[dateStr]) {
+                if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
             }
             
             if(tableBody) {
@@ -195,33 +245,131 @@ function updateHistoricalCharts() {
             }
         }
         
-        // 2. Gráfico Secundario (Pequeño, Tendencia Promedio)
+        // Gráfico Secundario (Comparación de sumas totales)
         if (secondaryChart) {
-            secondaryChart.data.labels = dLabels.length > 0 ? dLabels : ['Sin datos'];
-            secondaryChart.data.datasets[0].label = 'Pico Máximo Diario';
-            secondaryChart.data.datasets[0].data = dLabels.length > 0 ? dData : [0];
-            
-            // Cambiar color por pestaña
-            if(currentTimeframe === 'week') {
-                secondaryChart.data.datasets[0].backgroundColor = gradientEmerald;
-                secondaryChart.data.datasets[0].borderColor = '#34d399';
-                secondaryChart.data.datasets[0].hoverBackgroundColor = '#6ee7b7';
-            } else {
-                secondaryChart.data.datasets[0].backgroundColor = gradientBlue;
-                secondaryChart.data.datasets[0].borderColor = '#60a5fa';
-                secondaryChart.data.datasets[0].hoverBackgroundColor = '#93c5fd';
-            }
+            secondaryChart.data.labels = ['S. Anterior', 'S. Actual'];
+            secondaryChart.data.datasets = [{
+                label: 'Suma de Picos',
+                data: [sumPrev, sumCurrent],
+                backgroundColor: ['rgba(255, 255, 255, 0.2)', gradientEmerald],
+                borderColor: ['rgba(255, 255, 255, 0.5)', '#34d399'],
+                borderWidth: 2, borderRadius: 6
+            }];
             secondaryChart.update();
         }
 
-        // 3. Gráfico Principal Expandido (Horas promedio VS Días)
+        // Gráfico Principal Expandido (Día por Día Comparativo)
+        if (mainChart) {
+            mainChart.data.labels = cLabels;
+            mainChart.data.datasets = [
+                {
+                    label: 'Semana Actual',
+                    data: cData,
+                    backgroundColor: gradientPurple,
+                    borderColor: '#c084fc',
+                    borderWidth: 2, borderRadius: 6
+                },
+                {
+                    label: 'Semana Anterior',
+                    data: pData,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    borderWidth: 2, borderRadius: 6,
+                    type: 'line',
+                    tension: 0.4
+                }
+            ];
+            mainChart.update();
+        }
+        
+    } else if (currentTimeframe === 'month') {
+        document.getElementById('secondaryChartContainer').classList.remove('hidden'); // Mostrar gráfico secundario
+        
+        let targetMonthStr = document.getElementById('monthPicker')?.value;
+        if (!targetMonthStr) {
+            const lastDate = new Date(dates[dates.length-1]);
+            targetMonthStr = lastDate.toISOString().substring(0, 7); 
+        }
+        
+        // Aggregate data functionally by Month-Year keys
+        let monthAggregations = {}; // "2026-03": sum of daily peaks
+        let currentMonthDays = [];
+        
+        dates.forEach(dateStr => {
+            const monthStr = dateStr.substring(0, 7); // "YYYY-MM"
+            if (!monthAggregations[monthStr]) monthAggregations[monthStr] = 0;
+            
+            let peakOfDay = 0;
+            for (const h in historyData[dateStr]) {
+                if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
+            }
+            monthAggregations[monthStr] += peakOfDay;
+            
+            if (monthStr === targetMonthStr) {
+                currentMonthDays.push({ date: dateStr, peak: peakOfDay });
+            }
+        });
+
+        // Configurar Títulos
+        document.getElementById('tableTitle').innerHTML = '<i class="fa-solid fa-calendar-days text-blue-400"></i> Días del Mes Sel.';
+        document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-chart-line text-blue-400"></i> Historial por Meses (Puntos Totales)';
+        document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Rendimiento de Mes: ' + targetMonthStr;
+
+        // 1. Llenar Tabla con los días del mes actual (Orden Inverso)
+        for (let i = currentMonthDays.length - 1; i >= 0; i--) {
+            const item = currentMonthDays[i];
+            const d = new Date(item.date);
+            const userTimezoneOffset = d.getTimezoneOffset() * 60000;
+            const localDate = new Date(d.getTime() + userTimezoneOffset);
+            const formattedDate = localDate.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+            
+            if(tableBody) {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-white/5 transition-colors group';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap group-hover:text-white transition-colors capitalize">${formattedDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-cyan-400">${item.peak}</td>
+                `;
+                tableBody.appendChild(tr);
+            }
+        }
+        
+        // 2. Gráfico Secundario (Todos los meses registrados comparativamente)
+        const allMonths = Object.keys(monthAggregations).sort();
+        const mLabels = allMonths.map(m => m.split('-')[1] + '/' + m.split('-')[0].substring(2)); // "03/26"
+        const mData = allMonths.map(m => monthAggregations[m]);
+        
+        if (secondaryChart) {
+            secondaryChart.data.labels = mLabels.length > 0 ? mLabels : ['Sin datos'];
+            secondaryChart.data.datasets = [{
+                label: 'Tráfico Total',
+                data: mLabels.length > 0 ? mData : [0],
+                backgroundColor: gradientBlue,
+                borderColor: '#60a5fa',
+                borderWidth: 2, borderRadius: 6,
+                hoverBackgroundColor: '#93c5fd'
+            }];
+            secondaryChart.update();
+        }
+
+        // 3. Gráfico Principal Expandido (Días de este mes)
+        const dLabels = currentMonthDays.map(item => {
+            const d = new Date(item.date);
+            const userTimezoneOffset = d.getTimezoneOffset() * 60000;
+            return (new Date(d.getTime() + userTimezoneOffset)).getDate();
+        });
+        const dData = currentMonthDays.map(item => item.peak);
+        
         if (mainChart) {
             mainChart.data.labels = dLabels.length > 0 ? dLabels : ['Sin datos'];
-            mainChart.data.datasets[0].label = 'Jugadores Máximos';
-            mainChart.data.datasets[0].data = dLabels.length > 0 ? dData : [0];
-            mainChart.data.datasets[0].backgroundColor = gradientPurple;
-            mainChart.data.datasets[0].borderColor = '#c084fc';
-            mainChart.data.datasets[0].hoverBackgroundColor = '#d8b4fe';
+            mainChart.data.datasets = [{
+                label: 'Jugadores Máximos',
+                data: dLabels.length > 0 ? dData : [0],
+                backgroundColor: gradientPurple,
+                borderColor: '#c084fc',
+                borderWidth: 2, borderRadius: 6,
+                hoverBackgroundColor: '#d8b4fe'
+            }];
             mainChart.update();
         }
     }
@@ -229,6 +377,24 @@ function updateHistoricalCharts() {
 
 function setTimeframe(tf) {
     currentTimeframe = tf;
+    
+    // Controlar visibilidad de los Pickers
+    const pContainer = document.getElementById('pickersContainer');
+    const wContainer = document.getElementById('weekPickerContainer');
+    const mContainer = document.getElementById('monthPickerContainer');
+    
+    if (tf === 'day') {
+        pContainer.classList.add('hidden');
+    } else {
+        pContainer.classList.remove('hidden');
+        if (tf === 'week') {
+            wContainer.classList.remove('hidden');
+            mContainer.classList.add('hidden');
+        } else {
+            wContainer.classList.add('hidden');
+            mContainer.classList.remove('hidden');
+        }
+    }
     
     // Cambiar clases CSS de los botones (Activo vs Inactivo)
     const tabs = ['day', 'week', 'month'];
