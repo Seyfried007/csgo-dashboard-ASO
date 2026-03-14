@@ -42,7 +42,36 @@ function updateHistoricalCharts() {
     const dates = Object.keys(historyData).sort();
     if (dates.length === 0) return;
 
-    // 1. GRAFICO DE HORAS (Último día disponible)
+    // 1. Llenar Tabla (Orden Inverso, del más reciente al más antiguo)
+    const tableBody = document.getElementById('historyTableBody');
+    if (tableBody) {
+        tableBody.innerHTML = ''; // Limpiar
+        
+        // Iterar en reversa
+        for (let i = dates.length - 1; i >= 0; i--) {
+            const dateStr = dates[i];
+            const d = new Date(dateStr);
+            const formattedDate = d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+            
+            // Buscar pico de ese día
+            const hoursInDay = historyData[dateStr];
+            let peakOfDay = 0;
+            for (const h in hoursInDay) {
+                if (hoursInDay[h] > peakOfDay) peakOfDay = hoursInDay[h];
+            }
+            
+            // Crear fila HTML
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-white/5 transition-colors group';
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap group-hover:text-white transition-colors capitalize">${formattedDate}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-cyan-400">${peakOfDay}</td>
+            `;
+            tableBody.appendChild(tr);
+        }
+    }
+
+    // 2. GRAFICO DE HORAS (Último día disponible)
     const lastDate = dates[dates.length - 1];
     const todayHours = historyData[lastDate];
     
@@ -62,7 +91,7 @@ function updateHistoricalCharts() {
         hoursChart.update();
     }
 
-    // 2. GRAFICO DE DIAS (Pico máximo por día)
+    // 3. GRAFICO DE DIAS (Pico máximo por día)
     const dLabels = [];
     const dData = [];
     
@@ -72,13 +101,16 @@ function updateHistoricalCharts() {
         
         const hoursInDay = historyData[dateStr];
         let peakOfDay = 0;
+        
         for (const h in hoursInDay) {
             if (hoursInDay[h] > peakOfDay) peakOfDay = hoursInDay[h];
         }
+        
         dData.push(peakOfDay);
     });
     
     if (daysChart) {
+        daysChart.data.datasets[0].label = 'Pico Máximo Diario';
         daysChart.data.labels = dLabels.length > 0 ? dLabels : ['Sin datos'];
         daysChart.data.datasets[0].data = dLabels.length > 0 ? dData : [0];
         daysChart.update();
@@ -89,53 +121,7 @@ function clearHistory() {
     alert("Ahora los datos vienen directo de la nube de forma automática cada hora. No se pueden borrar desde aquí para proteger el historial global.");
 }
 
-// Configuración de Chart.js - Tiempo Real (Minutos)
-const ctx = document.getElementById('playersChart').getContext('2d');
-const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-gradient.addColorStop(0, 'rgba(34, 211, 238, 0.5)'); // Cyan
-gradient.addColorStop(1, 'rgba(34, 211, 238, 0.0)');
-
-const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'Jugadores Conectados',
-            data: [],
-            borderColor: '#22d3ee',
-            backgroundColor: gradient,
-            borderWidth: 3,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: '#22d3ee',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            fill: true,
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(15, 32, 39, 0.9)',
-                titleColor: '#fff',
-                bodyColor: '#22d3ee',
-                borderColor: 'rgba(255,255,255,0.1)',
-                borderWidth: 1,
-                padding: 12,
-                displayColors: false
-            }
-        },
-        scales: {
-            x: { grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
-            y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
-        },
-        animation: { duration: 1000, easing: 'easeOutQuart' }
-    }
-});
+// Se eliminó el gráfico de tiempo real (Minutos)
 
 // Configuración de Chart.js - Por Horas (Hoy)
 const ctxHours = document.getElementById('hoursChart')?.getContext('2d');
@@ -198,20 +184,7 @@ if (ctxDays) {
 // Las funciones originales updateHoursChart y updateDaysChart se eliminaron (ahora en fetchHistory)
 
 function addData(players) {
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-    const hourStr = now.getHours().toString().padStart(2, '0') + ':00';
-    
-    // 1. Gráfico en Tiempo Real
-    chart.data.labels.push(timeStr);
-    chart.data.datasets[0].data.push(players);
-    if (chart.data.labels.length > 60) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-    }
-    chart.update();
-    
-    // 2. Gráfico histórico desde la nube
+    // 1. Gráfico histórico desde la nube
     // (Ya no guardamos en LocalStorage porque GitHub auto-actualiza history.json cada hora)
 }
 
@@ -263,7 +236,6 @@ async function fetchServerData() {
         if (maxPlayers > 0) {
             setStatus(true);
             
-            chart.options.scales.y.suggestedMax = maxPlayers;
             if(hoursChart) hoursChart.options.scales.y.suggestedMax = maxPlayers;
             if(daysChart) daysChart.options.scales.y.suggestedMax = maxPlayers;
             

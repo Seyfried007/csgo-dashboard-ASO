@@ -130,17 +130,32 @@
         </div>
 
         <!-- Charts Section (Top Row) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <!-- Gráfico Tiempo Real -->
-            <div class="glass-card rounded-2xl p-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            
+            <!-- Resumen Histórico en Tabla -->
+            <div class="glass-card rounded-2xl p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i class="fa-solid fa-bolt text-cyan-400"></i>
-                        Tiempo Real (1 Hora)
+                        <i class="fa-solid fa-list-ul text-cyan-400"></i>
+                        Registro Diario
                     </h3>
                 </div>
-                <div class="relative h-64 w-full">
-                    <canvas id="playersChart"></canvas>
+                <div class="overflow-hidden rounded-xl border border-white/10 bg-gray-800/50 flex-grow relative">
+                    <div class="overflow-y-auto absolute inset-0 custom-scrollbar">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="text-xs text-gray-400 uppercase bg-gray-900/50 sticky top-0 z-10 backdrop-blur-md">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 font-semibold">Fecha</th>
+                                    <th scope="col" class="px-6 py-4 font-semibold text-center">Pico de Jugadores</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="divide-y divide-white/5">
+                                <tr class="hover:bg-white/5 transition-colors">
+                                    <td class="px-6 py-4 text-center text-gray-500 italic" colspan="2">Cargando datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
