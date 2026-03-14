@@ -250,41 +250,34 @@ function updateHistoricalCharts() {
             }
         }
         
-        // Tarjeta Analítica 1: Mejor Día vs Actual
+        // Tarjeta Analítica 1: Récord Histórico Absoluto (Mejor Día de la Historia)
         if (analContainer) {
             analContainer.classList.remove('hidden');
             
-            // Encontrar el mejor día de la semana actual
-            let maxWPeak = -1, maxWDateStr = "";
-            let currentDayPeak = 0;
-            currentWeekDates.forEach((dateStr, idx) => {
+            // Encontrar el mejor día de TODA LA HISTORIA registrada en historyData
+            let globalMaxPeak = -1, globalMaxDateStr = "";
+            dates.forEach(dateStr => {
                 let peakOfDay = 0;
                 for (const h in historyData[dateStr]) {
                     if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
                 }
-                if (peakOfDay > maxWPeak) {
-                    maxWPeak = peakOfDay;
-                    maxWDateStr = dateStr;
+                if (peakOfDay > globalMaxPeak) {
+                    globalMaxPeak = peakOfDay;
+                    globalMaxDateStr = dateStr;
                 }
-                if (idx === currentWeekDates.length - 1) currentDayPeak = peakOfDay; // El último día (día actual de la búsqueda)
             });
             
-            const bestD = new Date(maxWDateStr);
+            const bestD = new Date(globalMaxDateStr);
             const userTz = bestD.getTimezoneOffset() * 60000;
             const bDate = new Date(bestD.getTime() + userTz);
-            const bestDayName = bDate.toLocaleDateString('es-ES', { weekday: 'long' });
+            const bestDayName = bDate.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
             
-            analTitle1.textContent = "Día Más Activo";
+            analTitle1.textContent = "Mejor Día Histórico";
             analIcon1.className = "fa-solid fa-trophy";
-            analValue1.textContent = maxWPeak;
-            analSecondary1.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-gray-700 text-gray-300 capitalize";
+            analValue1.textContent = globalMaxPeak;
+            analSecondary1.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 capitalize whitespace-nowrap";
             analSecondary1.textContent = bestDayName;
-            
-            if (currentDayPeak === maxWPeak) {
-                analDesc1.innerHTML = `El día que seleccionaste <b>es el récord</b> de esta semana.`;
-            } else {
-                analDesc1.innerHTML = `El día seleccionado tuvo <b>${currentDayPeak} jugadores</b> en su punto máximo.`;
-            }
+            analDesc1.innerHTML = `El récord máximo de jugadores alcanzado en toda la historia de tu servidor.`;
 
             // Tarjeta Analítica 2: Rendimiento Semanal (Promedios sin decimales)
             let avgCurrentR = currentWeekDates.length > 0 ? Math.round(sumCurrent / currentWeekDates.length) : 0;
@@ -383,64 +376,73 @@ function updateHistoricalCharts() {
         document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-code-compare text-blue-400"></i> Crecimiento (Mes vs Ant.)';
         document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Rendimiento de Mes: ' + targetMonthStr;
 
-        // Tarjetas Analíticas de Mes (Semana a Semana y Promedios sin decimales)
+        // Tarjetas Analíticas de Mes (Semana Histórica vs Todo el Servidor)
         if (analContainer) {
             analContainer.classList.remove('hidden');
             
-            // 1. Promedio General del Mes sin decimales
-            let sumCurrMonth = 0, sumPrevMonth = 0;
-            currentMonthDays.forEach(x => sumCurrMonth += x.peak);
-            prevMonthDays.forEach(x => sumPrevMonth += x.peak);
-            
-            let avgCurrMonth = currentMonthDays.length > 0 ? Math.round(sumCurrMonth / currentMonthDays.length) : 0;
-            let avgPrevMonth = prevMonthDays.length > 0 ? Math.round(sumPrevMonth / prevMonthDays.length) : 0;
-            
-            let pDiff = 0;
-            if (avgPrevMonth > 0) {
-                pDiff = Math.round(((avgCurrMonth - avgPrevMonth) / avgPrevMonth) * 100);
-            }
-            
-            let mClass = pDiff > 0 ? "bg-emerald-500/20 text-emerald-400" : (pDiff < 0 ? "bg-red-500/20 text-red-400" : "bg-gray-700 text-gray-300");
-            let mSign = pDiff > 0 ? "+" : "";
-            let textMDiff = pDiff === 0 ? "Sin cambios vs mes anterior" : `${mSign}${pDiff}% vs mes pasado`;
-
-            analTitle1.textContent = "Promedio del Mes";
-            analIcon1.className = "fa-solid fa-users";
-            analValue1.textContent = avgCurrMonth;
-            analSecondary1.className = `text-sm font-medium mb-1 px-2 py-0.5 rounded ${mClass}`;
-            analSecondary1.textContent = textMDiff;
-            analDesc1.innerHTML = `Cantidad media de jugadores diarios este mes.`;
-
-            // 2. Mejor Semana del Mes
-            // Lo dividimos en "chunks" de 7 días (Días 1-7, 8-14, etc.)
-            let weekSums = [0,0,0,0,0];
-            let weekCounts = [0,0,0,0,0];
-            currentMonthDays.forEach(dInfo => {
-                let wIdx = Math.floor((dInfo.day - 1) / 7);
-                if (wIdx > 4) wIdx = 4; // Agrupar los últimos días
-                weekSums[wIdx] += dInfo.peak;
-                weekCounts[wIdx]++;
+            // 1. Mejor Día Mensual (En el mes seleccionado)
+            let maxMPeak = -1, maxMDateStr = "";
+            currentMonthDays.forEach(x => {
+                if (x.peak > maxMPeak) {
+                    maxMPeak = x.peak;
+                    maxMDateStr = x.date;
+                }
             });
             
-            let bestWeekIdx = -1;
-            let bestWeekAvg = -1;
-            for(let i=0; i<5; i++){
-                if (weekCounts[i] > 0) {
-                    let wAvg = Math.round(weekSums[i] / weekCounts[i]);
-                    if (wAvg > bestWeekAvg) {
-                        bestWeekAvg = wAvg;
-                        bestWeekIdx = i;
+            let mBadge = "";
+            if (maxMDateStr) {
+                const bDateD = new Date(maxMDateStr);
+                const bDateLocal = new Date(bDateD.getTime() + bDateD.getTimezoneOffset() * 60000);
+                mBadge = bDateLocal.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit' });
+            }
+            
+            analTitle1.textContent = "Día Récord del Mes";
+            analIcon1.className = "fa-solid fa-crown";
+            analValue1.textContent = maxMPeak > -1 ? maxMPeak : "--";
+            analSecondary1.className = `text-sm font-medium mb-1 px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 capitalize`;
+            analSecondary1.textContent = mBadge || "N/A";
+            analDesc1.innerHTML = `El día de este mes seleccionado donde más personas entraron a la vez.`;
+
+            // 2. Mejor Semana Histórica GLOBAL (Todo historyData)
+            let globalBestWeekAvg = 0;
+            let globalBestWeekStart = "";
+            
+            // Evaluamos la historia semanalmente (saltando de 7 en 7 o una ventana móvil iterando todos los días)
+            // Forma correcta y exacta: Ventana móvil de 7 días.
+            for (let i = 0; i <= dates.length - 7; i++) {
+                let wSum = 0;
+                let wCount = 0;
+                for (let j = 0; j < 7; j++) {
+                    const dStr = dates[i+j];
+                    let peakOfDay = 0;
+                    if (historyData[dStr]) {
+                        for (const h in historyData[dStr]) {
+                            if (historyData[dStr][h] > peakOfDay) peakOfDay = historyData[dStr][h];
+                        }
                     }
+                    wSum += peakOfDay;
+                    wCount++;
+                }
+                const wAvg = Math.round(wSum / wCount);
+                if (wAvg > globalBestWeekAvg) {
+                    globalBestWeekAvg = wAvg;
+                    globalBestWeekStart = dates[i]; // El inicio de esta ventana racha
                 }
             }
             
-            let wName = bestWeekIdx >= 0 ? `Semana ${bestWeekIdx + 1}` : "N/A";
-            analTitle2.textContent = "Semana Más Fuerte";
-            analIcon2.className = "fa-solid fa-fire";
-            analValue2.textContent = bestWeekAvg > 0 ? bestWeekAvg : "--";
-            analSecondary2.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-orange-500/20 text-orange-400";
-            analSecondary2.textContent = wName;
-            analDesc2.innerHTML = `El promedio más alto logrado en 7 días seguidos.`;
+            let bWeekLabel = "N/A";
+            if (globalBestWeekStart !== "") {
+                const bwD = new Date(globalBestWeekStart);
+                const bwLocal = new Date(bwD.getTime() + bwD.getTimezoneOffset() * 60000);
+                bWeekLabel = "Inició el " + bwLocal.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' });
+            }
+
+            analTitle2.textContent = "Mejor Semana Histórica";
+            analIcon2.className = "fa-solid fa-ranking-star";
+            analValue2.textContent = globalBestWeekAvg > 0 ? globalBestWeekAvg : "--";
+            analSecondary2.className = "text-sm font-medium mb-1 px-2 py-0.5 rounded bg-purple-500/20 text-purple-400";
+            analSecondary2.textContent = bWeekLabel;
+            analDesc2.innerHTML = `El promedio diario de la mejor racha de 7 días jamás registrada en el servidor.`;
         }
 
         // 1. Llenar Tabla con los días del mes actual (Orden Inverso)
