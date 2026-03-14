@@ -220,17 +220,18 @@ async function fetchServerData() {
         const maxPlayersElem = doc.getElementById('HTML_max_players');
         const mapElem = doc.getElementById('HTML_curr_map');
 
-        let players = playersElem ? parseInt(playersElem.innerText.trim()) : 0;
-        let maxPlayers = maxPlayersElem ? parseInt(maxPlayersElem.innerText.trim()) : 0;
+        let players = playersElem ? parseInt(playersElem.innerText.trim()) : NaN;
+        let maxPlayers = maxPlayersElem ? parseInt(maxPlayersElem.innerText.trim()) : NaN;
         let map = mapElem ? mapElem.innerText.trim() : 'Desconocido';
 
+        // ¡Fallback crucial con Regex si el parser del DOM falla (muy común por CORS/Proxy)!
         if (isNaN(players)) {
-            const match = htmlString.match(/<span\s+id="HTML_num_players"[^>]*>(\d+)<\/span>/i);
-            players = match ? parseInt(match[1]) : 0;
+            const playersMatch = htmlString.match(/<span\s+id=[\"']HTML_num_players[\"'][^>]*>(\d+)<\/span>/i);
+            players = playersMatch ? parseInt(playersMatch[1], 10) : 0;
         }
         if (isNaN(maxPlayers)) {
-            const match = htmlString.match(/<span\s+id="HTML_max_players"[^>]*>(\d+)<\/span>/i);
-            maxPlayers = match ? parseInt(match[1]) : 0;
+            const maxMatch = htmlString.match(/<span\s+id=[\"']HTML_max_players[\"'][^>]*>(\d+)<\/span>/i);
+            maxPlayers = maxMatch ? parseInt(maxMatch[1], 10) : 0;
         }
         
         if (maxPlayers > 0) {
