@@ -245,12 +245,15 @@ function updateHistoricalCharts() {
             }
         }
         
-        // Gráfico Secundario (Comparación de sumas totales)
+        // Gráfico Secundario (Comparación de PROMENDIOS)
+        let avgCurrent = currentWeekDates.length > 0 ? (sumCurrent / currentWeekDates.length).toFixed(1) : 0;
+        let avgPrev = prevWeekDates.length > 0 ? (sumPrev / prevWeekDates.length).toFixed(1) : 0;
+        
         if (secondaryChart) {
             secondaryChart.data.labels = ['S. Anterior', 'S. Actual'];
             secondaryChart.data.datasets = [{
-                label: 'Suma de Picos',
-                data: [sumPrev, sumCurrent],
+                label: 'Promedio de Picos',
+                data: [avgPrev, avgCurrent],
                 backgroundColor: ['rgba(255, 255, 255, 0.2)', gradientEmerald],
                 borderColor: ['rgba(255, 255, 255, 0.5)', '#34d399'],
                 borderWidth: 2, borderRadius: 6
@@ -291,28 +294,34 @@ function updateHistoricalCharts() {
             targetMonthStr = lastDate.toISOString().substring(0, 7); 
         }
         
-        // Aggregate data functionally by Month-Year keys
-        let monthAggregations = {}; // "2026-03": sum of daily peaks
+        // Calcular el mes anterior
+        const tm = new Date(targetMonthStr + "-01");
+        const pm = new Date(tm);
+        pm.setMonth(pm.getMonth() - 1);
+        const prevMonthStr = pm.toISOString().substring(0, 7);
+        
         let currentMonthDays = [];
+        let prevMonthDays = [];
         
         dates.forEach(dateStr => {
             const monthStr = dateStr.substring(0, 7); // "YYYY-MM"
-            if (!monthAggregations[monthStr]) monthAggregations[monthStr] = 0;
+            const dayNum = parseInt(dateStr.substring(8, 10), 10);
             
             let peakOfDay = 0;
             for (const h in historyData[dateStr]) {
                 if (historyData[dateStr][h] > peakOfDay) peakOfDay = historyData[dateStr][h];
             }
-            monthAggregations[monthStr] += peakOfDay;
             
             if (monthStr === targetMonthStr) {
-                currentMonthDays.push({ date: dateStr, peak: peakOfDay });
+                currentMonthDays.push({ date: dateStr, day: dayNum, peak: peakOfDay });
+            } else if (monthStr === prevMonthStr) {
+                prevMonthDays.push({ date: dateStr, day: dayNum, peak: peakOfDay });
             }
         });
 
         // Configurar Títulos
         document.getElementById('tableTitle').innerHTML = '<i class="fa-solid fa-calendar-days text-blue-400"></i> Días del Mes Sel.';
-        document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-chart-line text-blue-400"></i> Historial por Meses (Puntos Totales)';
+        document.getElementById('secondaryChartTitle').innerHTML = '<i class="fa-solid fa-code-compare text-blue-400"></i> Crecimiento (Mes vs Ant.)';
         document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-chart-area text-purple-400"></i> Rendimiento de Mes: ' + targetMonthStr;
 
         // 1. Llenar Tabla con los días del mes actual (Orden Inverso)
@@ -334,42 +343,77 @@ function updateHistoricalCharts() {
             }
         }
         
-        // 2. Gráfico Secundario (Todos los meses registrados comparativamente)
-        const allMonths = Object.keys(monthAggregations).sort();
-        const mLabels = allMonths.map(m => m.split('-')[1] + '/' + m.split('-')[0].substring(2)); // "03/26"
-        const mData = allMonths.map(m => monthAggregations[m]);
+        // 2. Procesar datos para gráficos "Día x" vs "Día x"
+        // Determinar cuántos días tiene el mes actual (máximo 31)
+        const daysInMonth = new Date(tm.getFullYear(), tm.getMonth() + 1, 0).getDate();
+        
+        const mLabels = [];
+        const cData = [];
+        const pData = [];
+        let sumCurrent = 0, countCurrent = 0;
+        let sumPrev = 0, countPrev = 0;
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+            mLabels.push(`Día ${d}`);
+            
+            // Buscar día d en mes actual
+            const cItem = currentMonthDays.find(x => x.day === d);
+            if (cItem) {
+                cData.push(cItem.peak);
+                sumCurrent += cItem.peak;
+                countCurrent++;
+            } else {
+                cData.push(0);
+            }
+            
+            // Buscar día d en mes anterior
+            const pItem = prevMonthDays.find(x => x.day === d);
+            if (pItem) {
+                pData.push(pItem.peak);
+                sumPrev += pItem.peak;
+                countPrev++;
+            } else {
+                pData.push(0); // Relleno visual
+            }
+        }
+        
+        // Gráfico Secundario (Comparación de Promedios del Mes)
+        let avgCurrentM = countCurrent > 0 ? (sumCurrent / countCurrent).toFixed(1) : 0;
+        let avgPrevM = countPrev > 0 ? (sumPrev / countPrev).toFixed(1) : 0;
         
         if (secondaryChart) {
-            secondaryChart.data.labels = mLabels.length > 0 ? mLabels : ['Sin datos'];
+            secondaryChart.data.labels = ['Mes Anterior', 'Mes Actual'];
             secondaryChart.data.datasets = [{
-                label: 'Tráfico Total',
-                data: mLabels.length > 0 ? mData : [0],
-                backgroundColor: gradientBlue,
-                borderColor: '#60a5fa',
-                borderWidth: 2, borderRadius: 6,
-                hoverBackgroundColor: '#93c5fd'
+                label: 'Promedio de Picos',
+                data: [avgPrevM, avgCurrentM],
+                backgroundColor: ['rgba(255, 255, 255, 0.2)', gradientBlue],
+                borderColor: ['rgba(255, 255, 255, 0.5)', '#60a5fa'],
+                borderWidth: 2, borderRadius: 6
             }];
             secondaryChart.update();
         }
 
-        // 3. Gráfico Principal Expandido (Días de este mes)
-        const dLabels = currentMonthDays.map(item => {
-            const d = new Date(item.date);
-            const userTimezoneOffset = d.getTimezoneOffset() * 60000;
-            return (new Date(d.getTime() + userTimezoneOffset)).getDate();
-        });
-        const dData = currentMonthDays.map(item => item.peak);
-        
+        // 3. Gráfico Principal Expandido (Días de este mes vs mes anterior)
         if (mainChart) {
-            mainChart.data.labels = dLabels.length > 0 ? dLabels : ['Sin datos'];
-            mainChart.data.datasets = [{
-                label: 'Jugadores Máximos',
-                data: dLabels.length > 0 ? dData : [0],
-                backgroundColor: gradientPurple,
-                borderColor: '#c084fc',
-                borderWidth: 2, borderRadius: 6,
-                hoverBackgroundColor: '#d8b4fe'
-            }];
+            mainChart.data.labels = mLabels;
+            mainChart.data.datasets = [
+                {
+                    label: 'Mes Actual',
+                    data: cData,
+                    backgroundColor: gradientPurple,
+                    borderColor: '#c084fc',
+                    borderWidth: 2, borderRadius: 6
+                },
+                {
+                    label: 'Mes Anterior',
+                    data: pData,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    borderWidth: 2, borderRadius: 6,
+                    type: 'line',
+                    tension: 0.4
+                }
+            ];
             mainChart.update();
         }
     }
