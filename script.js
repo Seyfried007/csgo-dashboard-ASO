@@ -28,6 +28,11 @@ let currentTimeframe = 'day'; // day, week, month
 
 async function fetchHistory() {
     try {
+        // Asegurarse de que los gráficos existan antes de intentar actualizarlos
+        if (!mainChart || !secondaryChart) {
+            initCharts();
+        }
+
         // Agregamos un timestamp para que GitHub no nos de una versión cacheada vieja
         const response = await fetch('history.json?t=' + new Date().getTime());
         if (!response.ok) return;
@@ -249,68 +254,72 @@ function setTimeframe(tf) {
 // CONFIGURACIÓN DE GRÁFICOS (CHART.JS)
 // ==========================================
 
-// Configuración de Gráfico Principal (Abajo Expandido)
-const ctxMain = document.getElementById('mainChart')?.getContext('2d');
-const gradientPurple = ctxMain?.createLinearGradient(0, 0, 0, 400);
-if(gradientPurple) {
-    gradientPurple.addColorStop(0, 'rgba(192, 132, 252, 0.6)'); // Purple
-    gradientPurple.addColorStop(1, 'rgba(192, 132, 252, 0.1)');
-}
-
 let mainChart;
-if (ctxMain) {
-    mainChart = new Chart(ctxMain, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: '', data: [], backgroundColor: gradientPurple, borderColor: '#c084fc', borderWidth: 2, borderRadius: 6, hoverBackgroundColor: '#d8b4fe' }] },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { backgroundColor: 'rgba(15, 32, 39, 0.9)', titleColor: '#fff', bodyColor: '#c084fc', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 12, displayColors: false }
-            },
-            scales: {
-                x: { grid: { display: false, drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
-                y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
-            },
-            animation: { duration: 1000 }
-        }
-    });
-}
-
-// Configuración de Gráfico Secundario (Arriba a la derecha)
-const ctxSecondary = document.getElementById('secondaryChart')?.getContext('2d');
-const gradientEmerald = ctxSecondary?.createLinearGradient(0, 0, 0, 400);
-if(gradientEmerald) {
-    gradientEmerald.addColorStop(0, 'rgba(52, 211, 153, 0.6)'); // Emerald
-    gradientEmerald.addColorStop(1, 'rgba(52, 211, 153, 0.1)');
-}
-// Nuevo gradiente azul para el mes
-const gradientBlue = ctxSecondary?.createLinearGradient(0, 0, 0, 400);
-if(gradientBlue) {
-    gradientBlue.addColorStop(0, 'rgba(96, 165, 250, 0.6)'); // Blue
-    gradientBlue.addColorStop(1, 'rgba(96, 165, 250, 0.1)');
-}
-
 let secondaryChart;
-if (ctxSecondary) {
-    secondaryChart = new Chart(ctxSecondary, {
-        type: 'bar', // Puede cambiar a line dinamicamente
-        data: { labels: [], datasets: [{ label: '', data: [], backgroundColor: gradientEmerald, borderColor: '#34d399', borderWidth: 2, borderRadius: 6, hoverBackgroundColor: '#6ee7b7' }] },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { backgroundColor: 'rgba(15, 32, 39, 0.9)', titleColor: '#fff', bodyColor: '#fff', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 12, displayColors: false }
-            },
-            scales: {
-                x: { grid: { display: false, drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
-                y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
-            },
-            animation: { duration: 1000 }
-        }
-    });
+let gradientPurple, gradientEmerald, gradientBlue;
+
+function initCharts() {
+    // Configuración de Gráfico Principal (Abajo Expandido)
+    const ctxMain = document.getElementById('mainChart')?.getContext('2d');
+    gradientPurple = ctxMain?.createLinearGradient(0, 0, 0, 400);
+    if(gradientPurple) {
+        gradientPurple.addColorStop(0, 'rgba(192, 132, 252, 0.6)'); // Purple
+        gradientPurple.addColorStop(1, 'rgba(192, 132, 252, 0.1)');
+    }
+
+    if (ctxMain) {
+        mainChart = new Chart(ctxMain, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: '', data: [], backgroundColor: gradientPurple, borderColor: '#c084fc', borderWidth: 2, borderRadius: 6, hoverBackgroundColor: '#d8b4fe' }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: 'rgba(15, 32, 39, 0.9)', titleColor: '#fff', bodyColor: '#c084fc', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 12, displayColors: false }
+                },
+                scales: {
+                    x: { grid: { display: false, drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
+                    y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
+                },
+                animation: { duration: 1000 }
+            }
+        });
+    }
+
+    // Configuración de Gráfico Secundario (Arriba a la derecha)
+    const ctxSecondary = document.getElementById('secondaryChart')?.getContext('2d');
+    gradientEmerald = ctxSecondary?.createLinearGradient(0, 0, 0, 400);
+    if(gradientEmerald) {
+        gradientEmerald.addColorStop(0, 'rgba(52, 211, 153, 0.6)'); // Emerald
+        gradientEmerald.addColorStop(1, 'rgba(52, 211, 153, 0.1)');
+    }
+    // Nuevo gradiente azul para el mes
+    gradientBlue = ctxSecondary?.createLinearGradient(0, 0, 0, 400);
+    if(gradientBlue) {
+        gradientBlue.addColorStop(0, 'rgba(96, 165, 250, 0.6)'); // Blue
+        gradientBlue.addColorStop(1, 'rgba(96, 165, 250, 0.1)');
+    }
+
+    if (ctxSecondary) {
+        secondaryChart = new Chart(ctxSecondary, {
+            type: 'bar', // Puede cambiar a line dinamicamente
+            data: { labels: [], datasets: [{ label: '', data: [], backgroundColor: gradientEmerald, borderColor: '#34d399', borderWidth: 2, borderRadius: 6, hoverBackgroundColor: '#6ee7b7' }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: 'rgba(15, 32, 39, 0.9)', titleColor: '#fff', bodyColor: '#fff', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 12, displayColors: false }
+                },
+                scales: {
+                    x: { grid: { display: false, drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
+                    y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
+                },
+                animation: { duration: 1000 }
+            }
+        });
+    }
 }
 
 // Las funciones originales updateHoursChart y updateDaysChart se eliminaron (ahora en fetchHistory)
@@ -448,6 +457,9 @@ window.onload = () => {
     elStatusDot.classList.replace('bg-green-400', 'bg-gray-500');
     elStatusDot.classList.remove('pulse');
     
+    // Inicializar gráficos crudos de Chart.js primero
+    initCharts();
+
     // Cargar gráficos históricos de GitHub Actions
     fetchHistory();
     
