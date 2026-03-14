@@ -1,0 +1,79 @@
+name: Fetch CSGO Server Data
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Ejecuta cada hora (a los 0 minutos)
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  fetch_and_save:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch and Parse Server Data
+        run: |
+          node -e "
+            const fs = require('fs');
+            const targetUrl = 'https://www.gametracker.com/server_info/45.235.98.242:27035/';
+            
+            fetch(targetUrl)
+              .then(res => res.text())
+              .then(html => {
+                const playersMatch = html.match(/<span\s+id=[\"']HTML_num_players[\"'][^>]*>(\d+)<\/span>/i);
+                if (playersMatch) {
+                  const players = parseInt(playersMatch[1], 10);
+                  
+                  const offset = -5; // GMT-5 (Peru/Colombia)
+                  const now = new Date();
+                  const localNow = new Date(now.getTime() + offset * 3600 * 1000);
+                  
+                  const dateStr = localNow.toISOString().split('T')[0];
+                  const hourStr = localNow.toISOString().split('T')[1].substring(0,2) + ':00';
+                  
+                  let history = {};
+                  try {
+                    history = JSON.parse(fs.readFileSync('history.json', 'utf8'));
+                  } catch (e) {
+                    history = {};
+                  }
+                  
+                  if (!history[dateStr]) history[dateStr] = {};
+                  
+                  // Guardar el mayor pico (por si se ejecuta más de 1 vez en la misma hora)
+                  const existing = history[dateStr][hourStr] || 0;
+                  history[dateStr][hourStr] = Math.max(existing, players);
+                  
+                  // Limpieza: mantener solo los últimos 30 días para no pesar mucho
+                  const dates = Object.keys(history).sort();
+                  if (dates.length > 30) {
+                     const toDelete = dates.length - 30;
+                     for (let i = 0; i < toDelete; i++) {
+                       delete history[dates[i]];
+                     }
+                  }
+                  
+                  fs.writeFileSync('history.json', JSON.stringify(history, null, 2));
+                  console.log('Datos guardados:', dateStr, hourStr, 'Jugadores:', players);
+                } else {
+                  console.log('No se pudieron encontrar jugadores.');
+                }
+              }).catch(err => console.error(err));
+          "
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "CSGO-Bot"
+          git config --global user.email "bot@csgodashboard.local"
+          git add history.json
+          git commit -m "chore: actualiza historial de jugadores [skip ci]" || echo "No hay cambios para commitear"
+          git push

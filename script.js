@@ -21,52 +21,72 @@ const elRefreshIcon = document.getElementById('refreshIcon');
 const elMapImage = document.getElementById('mapImage');
 const elMapPlaceholder = document.getElementById('mapPlaceholder');
 
-// Utilidades de LocalStorage para guardar datos históricos
-function saveToLocal(key, data) {
-    localStorage.setItem(`csgo_dashboard_${key}`, JSON.stringify(data));
-}
+// NO SE USA LOCALSTORAGE, SE USA EL ARCHIVO GLOBAL history.json PARA HORAS Y DÍAS.
+let historyData = {};
 
-function loadFromLocal(key) {
-    const data = localStorage.getItem(`csgo_dashboard_${key}`);
-    return data ? JSON.parse(data) : null;
-}
-
-// Estructuras de datos locales
-// historicalData: { date: "YYYY-MM-DD", hours: { "00": maxPlayers, "01": maxPlayers, ... } }
-let todayData = loadFromLocal('today') || { date: new Date().toISOString().split('T')[0], hours: {} };
-// dailyHistory: { "YYYY-MM-DD": peakPlayers, ... }
-let dailyHistory = loadFromLocal('daily') || {};
-
-function checkNewDay() {
-    const currentDate = new Date().toISOString().split('T')[0];
-    if (todayData.date !== currentDate) {
-        // Guardar el pico del día anterior
-        let maxYesterday = 0;
-        for (const hour in todayData.hours) {
-            if (todayData.hours[hour] > maxYesterday) maxYesterday = todayData.hours[hour];
-        }
-        if (Object.keys(todayData.hours).length > 0) {
-            dailyHistory[todayData.date] = maxYesterday;
-            saveToLocal('daily', dailyHistory);
-        }
+async function fetchHistory() {
+    try {
+        // Agregamos un timestamp para que GitHub no nos de una versión cacheada vieja
+        const response = await fetch('history.json?t=' + new Date().getTime());
+        if (!response.ok) return;
+        historyData = await response.json();
         
-        // Reiniciar para hoy
-        todayData = { date: currentDate, hours: {} };
-        saveToLocal('today', todayData);
-        updateDaysChart();
+        // Convertimos el JSON { "YYYY-MM-DD": { "HH:00": jugadores } } al formato de nuestros gráficos
+        updateHistoricalCharts();
+    } catch (e) {
+        console.error("No se pudo cargar history.json", e);
     }
 }
 
-function clearHistory(type) {
-    if (type === 'hourly' && confirm('¿Borrar historial de horas de hoy?')) {
-        todayData.hours = {};
-        saveToLocal('today', todayData);
-        updateHoursChart();
-    } else if (type === 'daily' && confirm('¿Borrar historial de días anteriores?')) {
-        dailyHistory = {};
-        saveToLocal('daily', dailyHistory);
-        updateDaysChart();
+function updateHistoricalCharts() {
+    const dates = Object.keys(historyData).sort();
+    if (dates.length === 0) return;
+
+    // 1. GRAFICO DE HORAS (Último día disponible)
+    const lastDate = dates[dates.length - 1];
+    const todayHours = historyData[lastDate];
+    
+    const hLabels = [];
+    const hData = [];
+    for (let i = 0; i < 24; i++) {
+        const hourStr = i.toString().padStart(2, '0') + ':00';
+        if (todayHours[hourStr] !== undefined) {
+            hLabels.push(hourStr);
+            hData.push(todayHours[hourStr]);
+        }
     }
+    
+    if (hoursChart) {
+        hoursChart.data.labels = hLabels.length > 0 ? hLabels : ['Sin datos'];
+        hoursChart.data.datasets[0].data = hLabels.length > 0 ? hData : [0];
+        hoursChart.update();
+    }
+
+    // 2. GRAFICO DE DIAS (Pico máximo por día)
+    const dLabels = [];
+    const dData = [];
+    
+    dates.forEach(dateStr => {
+        const d = new Date(dateStr);
+        dLabels.push(d.getDate() + '/' + (d.getMonth() + 1));
+        
+        const hoursInDay = historyData[dateStr];
+        let peakOfDay = 0;
+        for (const h in hoursInDay) {
+            if (hoursInDay[h] > peakOfDay) peakOfDay = hoursInDay[h];
+        }
+        dData.push(peakOfDay);
+    });
+    
+    if (daysChart) {
+        daysChart.data.labels = dLabels.length > 0 ? dLabels : ['Sin datos'];
+        daysChart.data.datasets[0].data = dLabels.length > 0 ? dData : [0];
+        daysChart.update();
+    }
+}
+
+function clearHistory() {
+    alert("Ahora los datos vienen directo de la nube de forma automática cada hora. No se pueden borrar desde aquí para proteger el historial global.");
 }
 
 // Configuración de Chart.js - Tiempo Real (Minutos)
@@ -175,50 +195,7 @@ if (ctxDays) {
     });
 }
 
-// Funciones de actualización de gráficos
-function updateHoursChart() {
-    if (!hoursChart) return;
-    const labels = [];
-    const data = [];
-    // Recopilar datos de 00 a 23 hrs
-    for (let i = 0; i < 24; i++) {
-        const hourStr = i.toString().padStart(2, '0') + ':00';
-        if (todayData.hours[hourStr] !== undefined) {
-            labels.push(hourStr);
-            data.push(todayData.hours[hourStr]);
-        }
-    }
-    
-    // Si no hay datos, mostrar algo vacío amigable
-    if (labels.length === 0) {
-        hoursChart.data.labels = ['Sin datos aún'];
-        hoursChart.data.datasets[0].data = [0];
-    } else {
-        hoursChart.data.labels = labels;
-        hoursChart.data.datasets[0].data = data;
-    }
-    hoursChart.update();
-}
-
-function updateDaysChart() {
-    if (!daysChart) return;
-    const labels = Object.keys(dailyHistory).sort(); // Fechas ordenadas
-    const data = labels.map(date => dailyHistory[date]);
-    
-    if (labels.length === 0) {
-        daysChart.data.labels = ['Sin historial'];
-        daysChart.data.datasets[0].data = [0];
-    } else {
-        // Mostrar formarto corto (ej. "14 Mar")
-        const shortLabels = labels.map(dateStr => {
-            const d = new Date(dateStr);
-            return d.getDate() + '/' + (d.getMonth()+1);
-        });
-        daysChart.data.labels = shortLabels;
-        daysChart.data.datasets[0].data = data;
-    }
-    daysChart.update();
-}
+// Las funciones originales updateHoursChart y updateDaysChart se eliminaron (ahora en fetchHistory)
 
 function addData(players) {
     const now = new Date();
@@ -234,13 +211,8 @@ function addData(players) {
     }
     chart.update();
     
-    // 2. Lógica LocalStorage (Horas)
-    checkNewDay();
-    if (!todayData.hours[hourStr] || players > todayData.hours[hourStr]) {
-        todayData.hours[hourStr] = players; // Guardar el pico máximo de esa hora
-        saveToLocal('today', todayData);
-        updateHoursChart();
-    }
+    // 2. Gráfico histórico desde la nube
+    // (Ya no guardamos en LocalStorage porque GitHub auto-actualiza history.json cada hora)
 }
 
 function setStatus(isOnline) {
@@ -371,9 +343,8 @@ window.onload = () => {
     elStatusDot.classList.replace('bg-green-400', 'bg-gray-500');
     elStatusDot.classList.remove('pulse');
     
-    // Cargar gráficos iniciales vacíos o con datos guardados
-    updateHoursChart();
-    updateDaysChart();
+    // Cargar gráficos históricos de GitHub Actions
+    fetchHistory();
     
     fetchServerData();
     startTimer();
