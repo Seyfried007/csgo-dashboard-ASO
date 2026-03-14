@@ -130,44 +130,49 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
             <!-- Gráfico Tiempo Real -->
             <div class="glass-card rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-cyan-400"></i>
-                        Actividad en Tiempo Real
+                        <i class="fa-solid fa-bolt text-cyan-400"></i>
+                        Tiempo Real (1 Hora)
                     </h3>
                 </div>
-                <div class="relative h-72 w-full">
+                <div class="relative h-64 w-full">
                     <canvas id="playersChart"></canvas>
                 </div>
             </div>
 
-            <!-- Gráfico Horas Pico (GameTracker) -->
+            <!-- Gráfico Actividad por Horas -->
             <div class="glass-card rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-semibold flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
-                        Historial de Jugadores (GameTracker)
+                        <i class="fa-solid fa-clock text-purple-400"></i>
+                        Historial Hoy (Horas)
                     </h3>
+                    <button onclick="clearHistory('hourly')" class="text-xs text-gray-500 hover:text-red-400 transition-colors" title="Borrar datos de hoy">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
                 </div>
-                <div
-                    class="flex items-center justify-center p-4 bg-gray-800 border border-white/10 rounded-lg shadow-inner overflow-hidden min-h-[160px]">
-                    <img src="https://image.gametracker.com/images/graphs/server_players.php?GSID=6033340&start=-1d&max=32&name=History"
-                        alt="Historial GameTracker" id="historyChart"
-                        class="w-full max-w-full h-auto drop-shadow-md brightness-110 contrast-125">
+                <div class="relative h-64 w-full">
+                    <canvas id="hoursChart"></canvas>
                 </div>
-                <div class="flex justify-center mt-4 gap-2">
-                    <button onclick="changeHistoryRange('-1d')"
-                        class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs transition-colors border border-white/5 focus:ring-1 focus:ring-purple-400">Último
-                        Día</button>
-                    <button onclick="changeHistoryRange('-1w')"
-                        class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs transition-colors border border-white/5 focus:ring-1 focus:ring-purple-400">Última
-                        Semana</button>
-                    <button onclick="changeHistoryRange('-1m')"
-                        class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs transition-colors border border-white/5 focus:ring-1 focus:ring-purple-400">Último
-                        Mes</button>
+            </div>
+
+            <!-- Gráfico Actividad Semanal/Diaria -->
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-week text-emerald-400"></i>
+                        Historial (Días)
+                    </h3>
+                    <button onclick="clearHistory('daily')" class="text-xs text-gray-500 hover:text-red-400 transition-colors" title="Borrar historial de días">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+                <div class="relative h-64 w-full">
+                    <canvas id="daysChart"></canvas>
                 </div>
             </div>
         </div>
