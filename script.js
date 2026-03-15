@@ -176,6 +176,13 @@ function updateHistoricalCharts() {
             }];
             mainChart.update();
         }
+        
+        // 3. Pre-cargar Gráfico en Vivo (Live Chart) con el Historial de Hoy
+        if (liveChart && liveChart.data.labels.length === 0 && hLabels.length > 0) {
+            liveChart.data.labels = [...hLabels];
+            liveChart.data.datasets[0].data = [...hData];
+            liveChart.update();
+        }
 
     } else if (currentTimeframe === 'week') {
         document.getElementById('secondaryChartContainer').classList.remove('hidden');
