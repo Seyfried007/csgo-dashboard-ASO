@@ -102,10 +102,20 @@ function updateHistoricalCharts() {
     const analContainer = document.getElementById('analyticalCardsContainer');
     const analTitle1 = document.getElementById('analTitle1'), analValue1 = document.getElementById('analValue1'), analSecondary1 = document.getElementById('analSecondary1'), analDesc1 = document.getElementById('analDesc1'), analIcon1 = document.getElementById('analIcon1');
     const analTitle2 = document.getElementById('analTitle2'), analValue2 = document.getElementById('analValue2'), analSecondary2 = document.getElementById('analSecondary2'), analDesc2 = document.getElementById('analDesc2'), analIcon2 = document.getElementById('analIcon2');
+    const topGrid = document.getElementById('topChartsGrid');
+    const tContainer = document.getElementById('tableCardContainer');
+    const lContainer = document.getElementById('liveChartContainer');
 
     if (currentTimeframe === 'day') {
         document.getElementById('secondaryChartContainer').classList.add('hidden'); // Ocultar gráfico secundario
         if (analContainer) analContainer.classList.add('hidden'); // Ocultar tarjetas extras
+        if (tContainer) tContainer.classList.add('hidden'); // Ocultar Tabla
+        if (lContainer) {
+            lContainer.classList.remove('hidden'); // Mostrar Gráfico en Vivo
+            lContainer.classList.add('flex');
+        }
+        if (topGrid) topGrid.className = "grid grid-cols-1 xl:grid-cols-1 gap-6 mb-6"; // Span full width
+
         document.getElementById('mainChartTitle').innerHTML = '<i class="fa-solid fa-clock text-purple-400"></i> Historial Hoy (24 Horas)';
         
         // 1. Llenar Tabla (Orden Inverso)
@@ -163,6 +173,12 @@ function updateHistoricalCharts() {
 
     } else if (currentTimeframe === 'week') {
         document.getElementById('secondaryChartContainer').classList.remove('hidden');
+        if (tContainer) tContainer.classList.remove('hidden'); // Mostrar Tabla
+        if (lContainer) {
+            lContainer.classList.add('hidden'); // Ocultar Live Chart
+            lContainer.classList.remove('flex');
+        }
+        if (topGrid) topGrid.className = "grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6"; // 2 columnas
         
         let targetDateStr = document.getElementById('weekPicker')?.value;
         if (!targetDateStr) targetDateStr = dates[dates.length - 1]; // Fallback to latest
@@ -339,6 +355,12 @@ function updateHistoricalCharts() {
         
     } else if (currentTimeframe === 'month') {
         document.getElementById('secondaryChartContainer').classList.remove('hidden'); // Mostrar gráfico secundario
+        if (tContainer) tContainer.classList.remove('hidden'); // Mostrar Tabla
+        if (lContainer)  {
+            lContainer.classList.add('hidden'); // Ocultar Live Chart
+            lContainer.classList.remove('flex');
+        }
+        if (topGrid) topGrid.className = "grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6"; // 2 columnas
         
         let targetMonthStr = document.getElementById('monthPicker')?.value;
         if (!targetMonthStr) {
@@ -587,7 +609,8 @@ function setTimeframe(tf) {
 
 let mainChart;
 let secondaryChart;
-let gradientPurple, gradientEmerald, gradientBlue;
+let liveChart;
+let gradientPurple, gradientEmerald, gradientBlue, gradientPink;
 
 function initCharts() {
     // Configuración de Gráfico Principal (Abajo Expandido)
@@ -614,6 +637,33 @@ function initCharts() {
                     y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
                 },
                 animation: { duration: 1000 }
+            }
+        });
+    }
+
+    // Configuración de Gráfico Live (Arriba a la izquierda en Day view)
+    const ctxLive = document.getElementById('liveChart')?.getContext('2d');
+    gradientPink = ctxLive?.createLinearGradient(0, 0, 0, 400);
+    if(gradientPink) {
+        gradientPink.addColorStop(0, 'rgba(244, 114, 182, 0.4)'); // Pink
+        gradientPink.addColorStop(1, 'rgba(244, 114, 182, 0.0)');
+    }
+    if (ctxLive) {
+        liveChart = new Chart(ctxLive, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Jugadores En Vivo', data: [], backgroundColor: gradientPink, borderColor: '#f472b6', borderWidth: 3, pointBackgroundColor: '#fbcfe8', pointBorderColor: '#be185d', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, fill: true, tension: 0.4 }] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: 'rgba(15, 32, 39, 0.9)', titleColor: '#fff', bodyColor: '#f9a8d4', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 12, displayColors: false }
+                },
+                scales: {
+                    x: { grid: { display: false, drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', maxRotation: 45, minRotation: 45 } },
+                    y: { beginAtZero: true, suggestedMax: 32, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 5 } }
+                },
+                animation: { duration: 800 }
             }
         });
     }
@@ -744,7 +794,20 @@ async function fetchServerData() {
                 }
             }
 
-            addData(players);
+            // Real-time Push to Live Chart
+            if (liveChart) {
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                
+                liveChart.data.labels.push(timeStr);
+                liveChart.data.datasets[0].data.push(players);
+                // Keep the latest 45 minutes of real-time polling
+                if (liveChart.data.labels.length > 45) {
+                    liveChart.data.labels.shift();
+                    liveChart.data.datasets[0].data.shift();
+                }
+                liveChart.update();
+            }
 
         } else {
             throw new Error("No se encontraron datos del servidor");

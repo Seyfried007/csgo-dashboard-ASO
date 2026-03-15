@@ -197,17 +197,31 @@
         </div>
 
         <!-- Charts Section (Top Row - Dynamic Table & Chart) -->
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6" id="topChartsGrid">
             
-            <!-- Resumen Histórico en Tabla -->
-            <div class="glass-card rounded-2xl p-6 flex flex-col">
+            <!-- Real-Time Live Chart (Only visible on Day tab) -->
+            <div class="glass-card rounded-2xl p-6 flex-col hidden" id="liveChartContainer">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-satellite-dish text-pink-400 font-bold" style="animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></i>
+                        Tráfico en Vivo
+                    </h3>
+                    <span class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">Sesión Actual</span>
+                </div>
+                <div class="relative h-64 w-full">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Resumen Histórico en Tabla (Only visible on Week/Month tabs) -->
+            <div class="glass-card rounded-2xl p-6 flex flex-col" id="tableCardContainer">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-lg font-semibold flex items-center gap-2" id="tableTitle">
                         <i class="fa-solid fa-list-ul text-cyan-400"></i>
                         Registro Diario
                     </h3>
                 </div>
-                <div class="overflow-hidden rounded-xl border border-white/10 bg-gray-800/50 flex-grow relative">
+                <div class="overflow-hidden rounded-xl border border-white/10 bg-gray-800/50 flex-grow relative" style="min-height: 200px;">
                     <div class="overflow-y-auto absolute inset-0 custom-scrollbar">
                         <table class="w-full text-left text-sm text-gray-300">
                             <thead class="text-xs text-gray-400 uppercase bg-gray-900/50 sticky top-0 z-10 backdrop-blur-md" id="tableHeader">
@@ -258,8 +272,8 @@
 
     </div>
 
-    <!-- Custom Script V7 Cache Buster -->
-    <script src="script.js?v=7"></script>
+    <!-- Custom Script V8 Cache Buster -->
+    <script src="script.js?v=8"></script>
 </body>
 
 </html>
