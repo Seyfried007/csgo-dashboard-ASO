@@ -145,7 +145,7 @@ function updateHistoricalCharts() {
             }
         }
 
-        // 2. Gráfico Principal: Horas de Hoy
+        // 2. Gráfico Principal: Horas de Hoy (Formato 12 hrs AM/PM)
         const lastDate = dates[dates.length - 1];
         const todayHours = historyData[lastDate];
         const hLabels = [];
@@ -153,7 +153,13 @@ function updateHistoricalCharts() {
         for (let i = 0; i < 24; i++) {
             const hourStr = i.toString().padStart(2, '0') + ':00';
             if (todayHours[hourStr] !== undefined) {
-                hLabels.push(hourStr);
+                // Formatting military to 12h AM/PM
+                let h12 = i % 12;
+                if (h12 === 0) h12 = 12;
+                const ampm = i >= 12 ? 'PM' : 'AM';
+                const label12h = h12.toString().padStart(2, '0') + ':00 ' + ampm;
+                
+                hLabels.push(label12h);
                 hData.push(todayHours[hourStr]);
             }
         }
@@ -797,9 +803,14 @@ async function fetchServerData() {
             // Real-time Push to Live Chart
             if (liveChart) {
                 const now = new Date();
-                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                let hh = now.getHours();
+                const mm = now.getMinutes().toString().padStart(2, '0');
+                const ampm = hh >= 12 ? 'PM' : 'AM';
+                hh = hh % 12;
+                if (hh === 0) hh = 12;
+                const timeStr12h = hh.toString().padStart(2, '0') + ':' + mm + ' ' + ampm;
                 
-                liveChart.data.labels.push(timeStr);
+                liveChart.data.labels.push(timeStr12h);
                 liveChart.data.datasets[0].data.push(players);
                 // Keep the latest 45 minutes of real-time polling
                 if (liveChart.data.labels.length > 45) {
